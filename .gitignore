@@ -4,3 +4,10 @@
 # Локальные файлы с доступами/секретами (не коммитить)
 *.local.md
 *.local
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/

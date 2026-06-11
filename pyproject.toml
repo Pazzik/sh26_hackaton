@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meridian-analyst"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.6",
+    "duckdb>=0.10",
+    "openai>=1.30",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "httpx>=0.27"]
+
+# в репозитории есть и другие каталоги верхнего уровня (data/, site_scan/) —
+# пакетируем только app*, иначе setuptools падает на flat-layout автодискавери
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = ["live: тесты с реальной LLM (не запускать в CI)"]
+addopts = "-m 'not live'"
