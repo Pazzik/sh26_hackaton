@@ -175,6 +175,9 @@ LLM на выбор из Yandex AI Studio, фреймворки на выбор 
 - `docs/scoring_and_teams.md` — рубрики оценки (3 варианта + разбор), состав сдачи, инфра, список команд, карта дашборда.
 - `docs/case_description.txt` — полное описание кейса (`/case`).
 - `docs/work_pipeline.txt` — рекомендованный пайплайн работ по этапам и чекпоинтам (`/pipeline`).
+- `docs/yandex_ai_studio_conversations_api.md` — Conversations API из Yandex AI Studio: хранение диалога
+  как долгоживущего объекта со стабильным ID (`session_id` ↔ `conversation.id`), OpenAI-совместимый
+  Responses API. Threads-based AI Assistant API отключается 26.01.2026 — контекст строим на нём.
 - `docs/*.raw.txt` — сырые текстовые выгрузки страниц.
 - `site_scan/` — сырой HTML страниц и архив данных (бэкап источников).
 
