@@ -25,3 +25,12 @@ def test_category_compare_is_bar():
     rows = [{"line": "A", "rev": 1}, {"line": "B", "rev": 2}]
     st = visualize(_st(["line", "rev"], rows))
     assert st.chart.type == "bar"
+
+def test_chartspec_has_data_default_empty():
+    from app.contracts import ChartSpec
+    assert ChartSpec().data == []
+
+def test_config_has_max_chart_points():
+    from app.config import settings
+    assert isinstance(settings.max_chart_points, int)
+    assert settings.max_chart_points > 0

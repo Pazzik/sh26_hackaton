@@ -38,6 +38,7 @@ class ChartSpec(BaseModel):
     y: str = ""
     series: str | None = None
     reason: str = ""
+    data: list[dict] = []
 
 class TraceStep(BaseModel):
     agent: str

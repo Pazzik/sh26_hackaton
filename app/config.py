@@ -25,6 +25,7 @@ class Settings:
     deadline_simple_sec: int = int(os.getenv("DEADLINE_SIMPLE_SEC", "300"))
     deadline_analytical_sec: int = int(os.getenv("DEADLINE_ANALYTICAL_SEC", "600"))
     sql_row_limit: int = int(os.getenv("SQL_ROW_LIMIT", "5000"))
+    max_chart_points: int = int(os.getenv("MAX_CHART_POINTS", "200"))
     sql_timeout_sec: float = float(os.getenv("SQL_TIMEOUT_SEC", "20"))
     critic_max_retries: int = int(os.getenv("CRITIC_MAX_RETRIES", "1"))
     session_ttl_sec: int = int(os.getenv("SESSION_TTL_SEC", "1800"))
