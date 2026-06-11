@@ -1,0 +1,10 @@
+product_line_id,name,category,launch_date,status
+1,Маркетинг и реклама,mid_margin,2019-03-01,active
+2,Юридические услуги,high_margin,2019-03-01,active
+3,Разработка и IT,high_margin,2019-06-01,active
+4,Бухгалтерия и финучёт,mid_margin,2020-01-01,active
+5,Рекрутинг,mid_margin,2020-09-01,active
+6,Логистика и склад,low_margin,2021-02-01,active
+7,Аутсорс операций,low_margin,2021-08-01,active
+8,Дизайн и креатив,mid_margin,2020-05-01,active
+9,Консалтинг,high_margin,2019-09-01,sunset

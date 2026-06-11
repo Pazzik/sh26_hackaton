@@ -1,0 +1,272 @@
+AI South Hub 2026 — Лидерборд
+SOUTHHUUUB    AI South Hub 2026
+таблица участников  описание кейса  витрина данных Meridian  рекомендованный пайплайн работ  данные ↓    личный кабинет  жюри            Структура витрины: 8 таблиц    Таблица 1. financials_monthly    Таблица 2. unit_economics_monthly    Таблица 3. customers    Таблица 4. orders    Таблица 5. product_lines    Таблица 6. nps_responses    Таблица 7. customer_activity_monthly    Таблица 8. churn_reasons    Связи между таблицами    Что НЕ входит в витрину (отдельные документы)
+Витрина данных Meridian
+Схема таблиц, полей и связей · документ для организаторов
+↓  Скачать данные кейса (.zip, 16 МБ)   Структура витрины: 8 таблиц
+Все таблицы — в одной схеме meridian_dwh. Период данных: 36 месяцев, с января 2023 по декабрь 2025. Гранулярность по времени — преимущественно месяц, для orders и nps_responses — день.
+Высокоуровневая карта:
+financials_monthly — финансовая отчётность
+unit_economics_monthly — юнит-экономика по сегментам и продуктам
+customers — справочник клиентов
+orders — заказы услуг (транзакционный уровень)
+product_lines — справочник продуктовых линий
+nps_responses — ответы на NPS-опросы
+customer_activity_monthly — помесячная активность клиентов
+churn_reasons — exit-интервью с ушедшими клиентами
+Объем данных: ~25 000 клиентов, ~200 000 заказов, ~80 000 NPS-ответов, ~900 000 строк в customer_activity_monthly.
+Таблица 1. financials_monthly
+Помесячная финансовая отчётность Meridian за 36 месяцев. Используется для P&L-вопросов, CAPEX-планирования, расчёта EBITDA.
+Поле
+Тип
+Описание
+month
+date
+Первое число месяца, ключ таблицы
+gmv
+decimal
+Оборот через платформу за месяц, ₽
+revenue_gross
+decimal
+Валовая выручка Meridian (комиссия), ₽
+revenue_net
+decimal
+Чистая выручка после возвратов и компенсаций, ₽
+take_rate
+decimal
+Эффективная комиссия = revenue_gross / gmv
+cogs
+decimal
+Себестоимость (платёжные комиссии, хостинг, поддержка)
+opex_marketing
+decimal
+Маркетинговые расходы
+opex_rnd
+decimal
+R&D и продуктовая разработка
+opex_admin
+decimal
+Административные расходы
+ebitda
+decimal
+EBITDA = revenue_net − cogs − opex
+capex
+decimal
+Капитальные затраты (инфраструктура, M&A, лицензии)
+headcount
+int
+Численность сотрудников на конец месяца
+Таблица 2. unit_economics_monthly
+Юнит-экономика в разрезе сегмент × продуктовая линия × месяц. Используется для вопросов про CAC, LTV, payback, маржинальность по сегментам.
+Поле
+Тип
+Описание
+month
+date
+Месяц
+segment
+varchar
+Сегмент клиентов: SMB / Mid / Large
+product_line_id
+int
+FK на product_lines
+cac
+decimal
+Customer Acquisition Cost в сегменте × линии за месяц
+ltv_12m
+decimal
+LTV за 12 месяцев на новой когорте
+payback_months
+decimal
+Срок окупаемости CAC
+gross_margin_pct
+decimal
+Валовая маржа линии в сегменте
+take_rate_effective
+decimal
+Фактическая take rate в сегменте × линии
+new_customers
+int
+Количество новых клиентов в когорте
+Таблица 3. customers
+Справочник клиентов-компаний. Используется для сегментации, расчёта оттока, демографических разрезов.
+Поле
+Тип
+Описание
+customer_id
+int
+PK
+segment
+varchar
+SMB / Mid / Large (по выручке клиента)
+industry
+varchar
+Индустрия клиента: 12 категорий
+city
+varchar
+Город регистрации
+employee_count_band
+varchar
+Полоса численности: <50 / 50-200 / 200-500 / 500+
+signup_date
+date
+Дата регистрации на платформе
+churn_date
+date
+Дата формального расторжения договора (NULL = активный)
+contract_type
+varchar
+monthly / annual / pay_as_you_go
+acquisition_channel
+varchar
+paid / organic / referral / direct
+Таблица 4. orders
+Транзакционный уровень — каждый заказ услуги на платформе. Используется для расчёта GMV, выручки, активности клиентов, продуктовой аналитики.
+Поле
+Тип
+Описание
+order_id
+bigint
+PK
+customer_id
+int
+FK на customers
+product_line_id
+int
+FK на product_lines
+order_date
+date
+Дата заказа
+gmv
+decimal
+Стоимость заказа (то, что заплатил клиент исполнителю)
+revenue
+decimal
+Комиссия Meridian с заказа
+status
+varchar
+completed / cancelled / refunded / disputed
+provider_type
+varchar
+marketplace_provider / direct_contract / api_integration
+Таблица 5. product_lines
+Справочник продуктовых линий. Маленькая статичная таблица для джойнов.
+Поле
+Тип
+Описание
+product_line_id
+int
+PK
+name
+varchar
+Название линии
+category
+varchar
+high_margin / mid_margin / low_margin
+launch_date
+date
+Когда линия запущена
+status
+varchar
+active / sunset
+Состав:
+Маркетинг и реклама (mid_margin)
+Юридические услуги (high_margin)
+Разработка и IT (high_margin)
+Бухгалтерия и финучёт (mid_margin)
+Рекрутинг (mid_margin)
+Логистика и склад (low_margin)
+Аутсорс операций (low_margin)
+Дизайн и креатив (mid_margin)
+Консалтинг (high_margin, sunset с 2024)
+Таблица 6. nps_responses
+Ответы клиентов на NPS-опросы. Опрос рассылается раз в квартал тем клиентам, у которых был хотя бы один заказ за квартал. Используется для аналитики удовлетворённости.
+Поле
+Тип
+Описание
+response_id
+bigint
+PK
+customer_id
+int
+FK на customers
+product_line_id
+int
+FK на product_lines (по последнему использованному продукту)
+response_date
+date
+Дата ответа
+score
+int
+0-10
+category
+varchar
+promoter (9-10) / passive (7-8) / detractor (0-6)
+comment_tag
+varchar
+Короткий тег причины: price / quality / support / ai_competitor / churn_intent / nps_growth
+Таблица 7. customer_activity_monthly
+Помесячный срез активности по каждому клиенту. Самая большая таблица — ~900 000 строк. Используется для определения реальной активности, dormant-анализа, поведенческих метрик.
+Поле
+Тип
+Описание
+customer_id
+int
+FK на customers
+month
+date
+Первое число месяца
+orders_count
+int
+Количество заказов в месяце
+gmv_total
+decimal
+Суммарный GMV клиента за месяц
+days_active
+int
+Сколько дней было хотя бы одно действие
+login_count
+int
+Количество входов в систему
+status
+varchar
+active / dormant / churning / churned
+Логика status:
+active — был заказ в этом месяце
+dormant — не было заказов 30-90 дней, но customers.churn_date IS NULL
+churning — не было заказов 90+ дней, но customers.churn_date IS NULL
+churned — customers.churn_date <= month
+Таблица 8. churn_reasons
+Структурированные данные exit-интервью с ушедшими клиентами. Не путать с текстовыми транскриптами — те будут отдельными документами вне витрины.
+Поле
+Тип
+Описание
+customer_id
+int
+FK на customers
+churn_date
+date
+Дата формального ухода
+primary_reason
+varchar
+Категория: price / quality / ai_alternative / consolidation / no_need / other
+competitor_named
+varchar
+Конкурент, к которому ушли (NULL если не назвали)
+interview_completed
+bool
+Заполнено ли exit-интервью (не все соглашаются)
+nps_at_churn
+int
+Последний NPS перед уходом (NULL если не было)
+Связи между таблицами
+Все таблицы связаны через customer_id и product_line_id. Основные джойны, которые понадобятся командам:
+customers ↔ orders по customer_id (1:N) — основная цепочка для всего
+customers ↔ customer_activity_monthly по customer_id (1:N)
+customers ↔ nps_responses по customer_id (1:N)
+customers ↔ churn_reasons по customer_id (1:1, только для ушедших)
+orders ↔ product_lines по product_line_id (N:1)
+financials_monthly — без джойнов, агрегированная таблица
+unit_economics_monthly — агрегаты по segment × product_line, джойнится только с product_lines
+Что НЕ входит в витрину (отдельные документы)
+Эти данные предоставляются командам как сопровождающие файлы. Они нужны для самых сложных вопросов («почему клиенты уходят», «что стейкхолдеры думают о ситуации»), на которые в SQL-витрине ответа нет.
