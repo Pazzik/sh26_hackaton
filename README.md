@@ -8,7 +8,7 @@
 python3 -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
 export YC_API_KEY=...                       # ключ Yandex AI Studio (см. access.local.md)
-export YC_FOLDER=b1gm5lt4p9630hifld2j       # каталог команды
+export YC_FOLDER_ID=b1gm5lt4p9630hifld2j    # каталог команды (fallback: YC_FOLDER)
 export LLM_MODEL_URI=deepseek-v4-flash/latest   # точный ID DeepSeek v4 (проверен)
 # строго ОДИН worker: сессии и DuckDB живут в памяти процесса,
 # несколько воркеров развалят диалоговый контекст

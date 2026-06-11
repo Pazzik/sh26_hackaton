@@ -8,7 +8,9 @@ from dataclasses import dataclass
 @dataclass
 class Settings:
     yc_api_key: str = os.getenv("YC_API_KEY", "")
-    yc_folder: str = os.getenv("YC_FOLDER", "")
+    # каталог Yandex Cloud: канон — YC_FOLDER_ID (конвенция yc CLI / окружения VM);
+    # YC_FOLDER оставлен fallback'ом для уже выставленных окружений
+    yc_folder: str = os.getenv("YC_FOLDER_ID") or os.getenv("YC_FOLDER", "")
     llm_base_url: str = os.getenv("LLM_BASE_URL", "https://ai.api.cloud.yandex.net/v1")
     # DeepSeek v4 в каталоге AI Studio — точный ID проверен на ключе команды 2026-06-11.
     # Хранится короткий ID; полный URI gpt://<folder>/<id> собирает LLMClient.
