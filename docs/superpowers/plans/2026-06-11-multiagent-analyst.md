@@ -174,10 +174,13 @@ class Settings:
     yc_api_key: str = os.getenv("YC_API_KEY", "")
     yc_folder: str = os.getenv("YC_FOLDER", "")
     llm_base_url: str = os.getenv("LLM_BASE_URL", "https://ai.api.cloud.yandex.net/v1")
-    # модель DeepSeek v4 в каталоге AI Studio; переопределяется через env
-    llm_model_uri: str = os.getenv("LLM_MODEL_URI", "deepseek-v4")
-    llm_timeout_sec: float = float(os.getenv("LLM_TIMEOUT_SEC", "60"))
+    # DeepSeek v4 в каталоге AI Studio — точный ID проверен на ключе команды 2026-06-11.
+    # Хранится короткий ID; полный URI gpt://<folder>/<id> собирает LLMClient.
+    llm_model_uri: str = os.getenv("LLM_MODEL_URI", "deepseek-v4-flash/latest")
+    llm_timeout_sec: float = float(os.getenv("LLM_TIMEOUT_SEC", "90"))
     llm_max_retries: int = int(os.getenv("LLM_MAX_RETRIES", "2"))
+    # reasoning-модель тратит токены на рассуждение до финального ответа — запас обязателен
+    llm_max_tokens: int = int(os.getenv("LLM_MAX_TOKENS", "2000"))
     deadline_simple_sec: int = int(os.getenv("DEADLINE_SIMPLE_SEC", "300"))
     deadline_analytical_sec: int = int(os.getenv("DEADLINE_ANALYTICAL_SEC", "600"))
     sql_row_limit: int = int(os.getenv("SQL_ROW_LIMIT", "5000"))
@@ -780,22 +783,30 @@ class LLMClient:
         if self._client is None:
             from openai import OpenAI
             self._client = OpenAI(
-                api_key=settings.yc_api_key,
+                api_key=settings.yc_api_key,          # уходит как Authorization: Bearer — Yandex принимает
                 base_url=settings.llm_base_url,
                 timeout=settings.llm_timeout_sec,
                 max_retries=settings.llm_max_retries,
             )
         return self._client
 
+    def _model_uri(self) -> str:
+        m = settings.llm_model_uri
+        if m.startswith("gpt://") or m.startswith("emb://"):
+            return m
+        return f"gpt://{settings.yc_folder}/{m}"   # gpt://<folder>/deepseek-v4-flash/latest
+
     def _raw_complete(self, system: str, user: str) -> str:
         client = self._ensure()
         resp = client.chat.completions.create(
-            model=settings.llm_model_uri,
+            model=self._model_uri(),
             messages=[{"role": "system", "content": system},
                       {"role": "user", "content": user}],
             temperature=0,
+            max_tokens=settings.llm_max_tokens,       # reasoning-модель: запас под рассуждение
             response_format={"type": "json_object"},
         )
+        # финальный ответ в .content; reasoning_content игнорируем
         return resp.choices[0].message.content or ""
 
     def complete_json(self, system: str, user: str) -> dict:
@@ -2009,9 +2020,9 @@ Expected: при наличии ключа — PASS; иначе — skipped. Р�
 
 ```bash
 pip install -e ".[dev]"
-export YC_API_KEY=...        # ключ Yandex AI Studio
-export YC_FOLDER=...         # каталог
-export LLM_MODEL_URI=deepseek-v4   # модель в каталоге
+export YC_API_KEY=...                       # ключ Yandex AI Studio (см. access.local.md)
+export YC_FOLDER=b1gm5lt4p9630hifld2j       # каталог команды
+export LLM_MODEL_URI=deepseek-v4-flash/latest   # точный ID DeepSeek v4 (проверен)
 uvicorn app.api.main:app --host 0.0.0.0 --port 8000
 ```
 

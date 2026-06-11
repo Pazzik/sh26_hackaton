@@ -72,3 +72,46 @@ print("assistant:", r2.output_text)
   полностью отключается 26 января 2026 → диалоговый контекст строим на **Responses + Conversations API**.
 - Маппинг на наш API-контракт: `session_id` из `POST /api/chat` ↔ `conversation.id` (стабильный ID
   диалога на стороне AI Studio). Новая сессия → новый `client.conversations.create()`.
+
+## ✅ Подтверждено на нашем ключе команды (2026-06-11)
+
+Реальные вызовы с ключом из `access.local.md` (folder `b1gm5lt4p9630hifld2j`):
+
+- **Авторизация:** работают оба заголовка — `Authorization: Api-Key <key>` (curl) и
+  `Authorization: Bearer <key>` (как шлёт `openai` SDK через `api_key=`). HTTP 200.
+- **Base URL:** `https://ai.api.cloud.yandex.net/v1` отвечает (корень даёт 404 — это норма).
+  Доку Yandex также упоминает `https://llm.api.cloud.yandex.net/v1` — оба ведут себя одинаково.
+- **Модель DeepSeek v4 — точный ID: `deepseek-v4-flash/latest`** (не `deepseek-v4`!).
+  Полный URI: `gpt://b1gm5lt4p9630hifld2j/deepseek-v4-flash/latest`.
+- **DeepSeek v4 — это reasoning-модель:**
+  - Рассуждение приходит в `choices[0].message.reasoning_content`, **финальный ответ — в
+    `choices[0].message.content`**. При малом `max_tokens` (напр. 20) ответ обрезается на
+    середине reasoning и `content=null`, `finish_reason="length"`.
+  - **Вывод: ставить `max_tokens` с запасом (≥ 1500–2000)** — reasoning тратит токены до
+    финального ответа. Для коротких структурных ответов (роутер) ~200 completion-токенов уходит
+    на reasoning; это надо закладывать в бюджет «Экономики».
+  - `response_format={"type":"json_object"}` **работает**: `content` приходит валидным JSON,
+    reasoning отделён. JSON-режим на нашем LLM-клиенте применим.
+  - Латентность простого вызова ~3.4–3.7 s.
+- **Responses API** (`client.responses.create`, поля `instructions`/`input`/`max_output_tokens`)
+  тоже работает; reasoning лежит в `output[].summary`. Для наших per-agent промптов используем
+  **chat/completions** (проще и единообразнее), Conversations API не задействуем.
+
+### Что доступно в нашем каталоге (проверено перебором)
+
+- ✅ `deepseek-v4-flash/latest` — целевая модель (analyst/critic/extractor).
+- ✅ `qwen3-235b-a22b-fp8/latest`, `gpt-oss-120b/latest`, `gpt-oss-20b/latest` — запасные сильные.
+- ✅ `yandexgpt/latest`, `yandexgpt-32k/latest`, `yandexgpt-lite/latest` (lite — дёшево для роутера).
+- ❌ `deepseek-v4`/`deepseek-v3`/`deepseek-r1` без суффикса `-flash`, `llama*`, `gemma*`,
+  `qwen3-8b` — «Failed to get model» / forbidden. `GET /v1/models` отдаёт 403 (норма).
+
+### Минимальный рабочий curl (для смоук-теста)
+
+```bash
+KEY=...; FOLDER=b1gm5lt4p9630hifld2j
+curl -sS https://ai.api.cloud.yandex.net/v1/chat/completions \
+  -H "Authorization: Api-Key $KEY" -H "Content-Type: application/json" \
+  -d "{\"model\":\"gpt://$FOLDER/deepseek-v4-flash/latest\",\"max_tokens\":2000,
+       \"temperature\":0,\"response_format\":{\"type\":\"json_object\"},
+       \"messages\":[{\"role\":\"user\",\"content\":\"Верни JSON {\\\"ok\\\":true}\"}]}"
+```
