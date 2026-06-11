@@ -150,6 +150,10 @@ LLM на выбор из Yandex AI Studio, фреймворки на выбор 
 - **Yandex Cloud** (вычисления) · **Claude Code Max** (привязан к выданному аккаунту) · **LLM на выбор**
   (OpenAI / локальные / Yandex AI Studio) · **фреймворки на выбор** (LangGraph / CrewAI / AutoGen / с нуля).
 - Логин/пароль команды едины для SSH / Jupyter / личного кабинета (`/check`) / авто-проверки — из письма.
+  Наша команда — **team-005**. Все реальные доступы (пароли jump/team, SSH-хосты и порты, токен JupyterLab,
+  ссылки кабинета/Gitea, путь к ключу Yandex AI на VM) лежат в `access.local.md` — этот файл в `.gitignore`
+  и **в репозиторий не коммитится**. Если нужны креды — читай `access.local.md`; в `CLAUDE.md` и любые
+  закоммиченные файлы секреты не выносить.
 - Рекомендованный тулинг: VPN (часть сервисов недоступна из РФ), Claude Desktop, VS Code, плагины
   Superpowers и Context7, Chrome DevTools MCP. Начинать с **Plan mode** (экономит токены → балл «Экономика»).
 - 15 команд: `team-001`…`team-015`, у каждой git `git.aisouthhack.ru/team-0NN/project` и поддомен
