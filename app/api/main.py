@@ -1,6 +1,7 @@
 import logging
+from pathlib import Path
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.parsing import extract_question, BadRequest
@@ -56,3 +57,9 @@ for _p in CHAT_PATHS:
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+_UI_PATH = Path(__file__).parent / "static" / "index.html"
+
+@app.get("/ui")
+async def ui():
+    return FileResponse(_UI_PATH, media_type="text/html")

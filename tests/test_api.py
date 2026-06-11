@@ -53,3 +53,9 @@ async def test_garbage_session_id_not_500(client):
     r = await client.post("/api/chat", json={"message": "привет", "session_id": {"a": 1}})
     assert r.status_code == 200
     assert len(r.json()["response"]) >= 10
+
+async def test_ui_page_served(client):
+    r = await client.get("/ui")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert "/api/chat" in r.text  # страница бьёт в боевой путь

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Meridian — dev-просмотрщик</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 920px; margin: 24px auto; padding: 0 16px; }
+  textarea { width: 100%; height: 64px; font: inherit; }
+  input { font: inherit; padding: 4px; }
+  button { font: inherit; padding: 6px 16px; cursor: pointer; }
+  .row { display: flex; gap: 12px; align-items: center; margin: 8px 0; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; color: #fff; font-size: 13px; }
+  .ok { background: #2e7d32; } .warn { background: #c62828; }
+  #resp { white-space: pre-wrap; background: #f6f6f6; padding: 12px; border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 8px; }
+  th, td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; vertical-align: top; }
+  td.sql { font-family: monospace; white-space: pre-wrap; max-width: 420px; }
+  h3 { margin: 18px 0 6px; }
+  .muted { color: #888; }
+</style>
+</head>
+<body>
+<h2>Meridian — dev-просмотрщик</h2>
+<textarea id="msg" placeholder="Вопрос на естественном языке…">Покажи выручку по продуктовым линиям</textarea>
+<div class="row">
+  <label>session_id: <input id="sid" placeholder="(опц.)"></label>
+  <button id="ask">Спросить</button>
+  <span id="status" class="muted"></span>
+</div>
+
+<h3>Ответ <span id="insuf"></span></h3>
+<div id="resp"></div>
+
+<h3>Допущения</h3>
+<ul id="assum"></ul>
+
+<h3>График</h3>
+<div id="chartwrap"><canvas id="chart"></canvas></div>
+<div id="chartnote" class="muted"></div>
+
+<h3>Trace</h3>
+<table id="trace"><thead><tr><th>agent</th><th>summary</th><th>rows</th><th>ms</th><th class="sql">sql</th></tr></thead><tbody></tbody></table>
+
+<script>
+let chartInstance = null;
+
+async function ask() {
+  const msg = document.getElementById('msg').value;
+  const sid = document.getElementById('sid').value.trim();
+  const status = document.getElementById('status');
+  status.textContent = 'запрос…';
+  const body = { message: msg };
+  if (sid) body.session_id = sid;
+  let data;
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    data = await r.json();
+    status.textContent = 'HTTP ' + r.status;
+  } catch (e) {
+    status.textContent = 'ошибка сети: ' + e;
+    return;
+  }
+  render(data);
+}
+
+function render(d) {
+  document.getElementById('resp').textContent = d.response || '(пусто)';
+  const insuf = document.getElementById('insuf');
+  insuf.className = 'badge ' + (d.insufficient_data ? 'warn' : 'ok');
+  insuf.textContent = d.insufficient_data ? 'данных недостаточно' : 'ответ';
+
+  const ul = document.getElementById('assum');
+  ul.innerHTML = '';
+  (d.assumptions || []).forEach(a => {
+    const li = document.createElement('li'); li.textContent = a; ul.appendChild(li);
+  });
+
+  const tb = document.querySelector('#trace tbody');
+  tb.innerHTML = '';
+  (d.trace || []).forEach(t => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${t.agent||''}</td><td>${t.summary||''}</td>`
+      + `<td>${t.rows??''}</td><td>${t.elapsed_ms??''}</td>`
+      + `<td class="sql">${t.sql? t.sql.replace(/</g,'&lt;') : ''}</td>`;
+    tb.appendChild(tr);
+  });
+
+  renderChart(d.chart);
+}
+
+function renderChart(chart) {
+  const note = document.getElementById('chartnote');
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  if (typeof Chart === 'undefined') { note.textContent = 'Chart.js недоступен (нет сети до CDN)'; return; }
+  if (!chart || chart.type === 'none' || !chart.data || !chart.data.length) {
+    note.textContent = chart ? ('графика нет: ' + (chart.reason||'')) : 'графика нет';
+    return;
+  }
+  note.textContent = 'тип: ' + chart.type + ' · X=' + chart.x + ' · Y=' + chart.y
+    + (chart.series ? ' · series=' + chart.series : '') + ' · ' + (chart.reason||'');
+  const ctx = document.getElementById('chart').getContext('2d');
+  const rows = chart.data;
+  let cfg;
+
+  if (chart.type === 'scatter') {
+    cfg = { type: 'scatter', data: { datasets: [{ label: chart.y,
+      data: rows.map(r => ({ x: r[chart.x], y: r[chart.y] })) }] } };
+  } else if (chart.type === 'grouped_bar' && chart.series) {
+    const labels = [...new Set(rows.map(r => r[chart.x]))];
+    const groups = [...new Set(rows.map(r => r[chart.series]))];
+    cfg = { type: 'bar', data: { labels, datasets: groups.map(g => ({
+      label: g,
+      data: labels.map(l => {
+        const hit = rows.find(r => r[chart.x] === l && r[chart.series] === g);
+        return hit ? hit[chart.y] : 0;
+      }),
+    })) } };
+  } else {
+    const kind = (chart.type === 'line' || chart.type === 'area') ? 'line' : 'bar';
+    cfg = { type: kind, data: {
+      labels: rows.map(r => r[chart.x]),
+      datasets: [{ label: chart.y, data: rows.map(r => r[chart.y]),
+        fill: chart.type === 'area' }],
+    } };
+  }
+  chartInstance = new Chart(ctx, cfg);
+}
+
+document.getElementById('ask').addEventListener('click', ask);
+</script>
+</body>
+</html>
