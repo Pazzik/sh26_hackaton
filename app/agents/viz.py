@@ -1,4 +1,7 @@
 import time
+from datetime import date, datetime
+from decimal import Decimal
+from app.config import settings
 from app.contracts import PipelineState, ChartSpec, TraceStep
 
 _TIME_HINTS = ("month", "quarter", "year", "date", "day")
@@ -6,6 +9,17 @@ _TIME_HINTS = ("month", "quarter", "year", "date", "day")
 def _looks_temporal(name: str) -> bool:
     n = name.lower()
     return any(h in n for h in _TIME_HINTS)
+
+def _json_safe(v):
+    if isinstance(v, Decimal):
+        return float(v)
+    if isinstance(v, (date, datetime)):
+        return v.isoformat()
+    return v
+
+def _chart_data(rows: list[dict]) -> list[dict]:
+    return [{k: _json_safe(val) for k, val in r.items()}
+            for r in rows[: settings.max_chart_points]]
 
 def visualize(state: PipelineState) -> PipelineState:
     t0 = time.monotonic()
@@ -24,6 +38,9 @@ def visualize(state: PipelineState) -> PipelineState:
                          reason="сравнение по категориям")
     else:
         spec = ChartSpec(type="none", reason="график не уместен")
+
+    if spec.type != "none":
+        spec.data = _chart_data(rows)
 
     state.chart = spec
     state.trace.append(TraceStep(agent="viz", summary=f"{spec.type}: {spec.reason}",

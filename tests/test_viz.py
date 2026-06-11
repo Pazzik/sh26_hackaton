@@ -34,3 +34,34 @@ def test_config_has_max_chart_points():
     from app.config import settings
     assert isinstance(settings.max_chart_points, int)
     assert settings.max_chart_points > 0
+
+import json
+from datetime import date
+from decimal import Decimal
+
+def test_bar_data_equals_rows():
+    rows = [{"line": "A", "rev": 1}, {"line": "B", "rev": 2}]
+    st = visualize(_st(["line", "rev"], rows))
+    assert st.chart.type == "bar"
+    assert st.chart.data == rows
+
+def test_none_chart_has_empty_data():
+    st = visualize(_st(["n"], [{"n": 42}]))
+    assert st.chart.type == "none"
+    assert st.chart.data == []
+
+def test_data_truncated_to_limit(monkeypatch):
+    from app.config import settings
+    monkeypatch.setattr(settings, "max_chart_points", 3)
+    rows = [{"month": f"2024-{i:02d}", "rev": i} for i in range(1, 13)]
+    st = visualize(_st(["month", "rev"], rows))
+    assert len(st.chart.data) == 3
+
+def test_data_is_json_safe():
+    # DuckDB отдаёт Decimal/date — они должны стать сериализуемыми
+    rows = [{"d": date(2024, 1, 1), "rev": Decimal("1.5")},
+            {"d": date(2024, 2, 1), "rev": Decimal("2.5")}]
+    st = visualize(_st(["d", "rev"], rows))
+    json.dumps(st.chart.data)  # не должно бросить TypeError
+    assert st.chart.data[0]["rev"] == 1.5
+    assert st.chart.data[0]["d"] == "2024-01-01"
